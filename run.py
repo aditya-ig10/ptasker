@@ -1,4 +1,6 @@
 import datetime
+import datetime
+import json
 
 print("""
 ---------------------------------------------------------------------------------------
@@ -12,13 +14,27 @@ print("""
                                                ~by aditya-ig10
 ---------------------------------------------------------------------------------------     
 """)
-
 class Task:
     def __init__(self, description, deadline=None):
         self.description = description
         self.created_at = datetime.datetime.now()
         self.completed = False
         self.deadline = deadline
+
+    def to_dict(self):
+        return {
+            "description": self.description,
+            "created_at": self.created_at.isoformat(),
+            "completed": self.completed,
+            "deadline": self.deadline,
+        }
+
+    @classmethod
+    def from_dict(cls, task_dict):
+        task = cls(task_dict["description"], task_dict["deadline"])
+        task.created_at = datetime.datetime.fromisoformat(task_dict["created_at"])
+        task.completed = task_dict["completed"]
+        return task
 
 class TimeManagementApp:
     def __init__(self):
@@ -30,12 +46,14 @@ class TimeManagementApp:
         print(f"Task added: {task.description}")
         if task.deadline:
             print(f"Deadline: {task.deadline}")
+        self.save_tasks()
 
     def mark_task_completed(self, index):
         if 0 <= index < len(self.tasks):
             task = self.tasks[index]
             task.completed = True
             print(f"Task completed: {task.description}")
+            self.save_tasks()
         else:
             print("Invalid task index.")
 
@@ -50,11 +68,25 @@ class TimeManagementApp:
             deadline_info = f" - Deadline: {task.deadline}" if task.deadline else ""
             print(f"{i + 1}. {task.description} ({status}){deadline_info} - Created at: {task.created_at}")
 
+    def save_tasks(self):
+        with open("tasks.json", "w") as file:
+            tasks_data = [task.to_dict() for task in self.tasks]
+            json.dump(tasks_data, file)
+
+    def load_tasks(self):
+        try:
+            with open("tasks.json", "r") as file:
+                tasks_data = json.load(file)
+                self.tasks = [Task.from_dict(task_dict) for task_dict in tasks_data]
+        except FileNotFoundError:
+            self.tasks = []
+
 if __name__ == "__main__":
     app = TimeManagementApp()
+    app.load_tasks()
 
     while True:
-        print("=== pTASKER: A Task management tool for coders ===")
+        print("\n \n=== pTASKER: A Task management tool for coders ===")
         print("1. Add Task")
         print("2. Mark Task as Completed")
         print("3. View Tasks")
